@@ -5,6 +5,7 @@ import base64
 import asyncio
 import telegram
 from telegram import Update
+from telegram.constants import ParseMode # <-- FIX: Import ParseMode here
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
 from cryptography.hazmat.primitives import serialization, hashes
 from cryptography.hazmat.primitives.asymmetric import rsa, padding
@@ -35,20 +36,18 @@ def create_license(data_to_sign):
 
 # --- Bot Handlers (async) ---
 async def start(update: Update, context: CallbackContext):
-    # FIX: Combine the two messages into one to prevent a race condition on Vercel
     welcome_message = "Welcome! To get your Ankard PRO license, please follow these steps:"
     full_message = f"{welcome_message}\n\n{PAYMENT_INSTRUCTIONS}"
-    
     await update.message.reply_text(
         full_message,
-        parse_mode=telegram.ParseMode.MARKDOWN
+        parse_mode=ParseMode.MARKDOWN # <-- FIX: Use the imported ParseMode
     )
 
 async def handle_screenshot(update: Update, context: CallbackContext):
     if not ADMIN_CHAT_ID: return
     user = update.message.from_user
     user_info = f"Screenshot from:\nUser: {user.full_name}\nID: `{user.id}`"
-    await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=user_info, parse_mode=telegram.ParseMode.MARKDOWN)
+    await context.bot.send_message(chat_id=ADMIN_CHAT_ID, text=user_info, parse_mode=ParseMode.MARKDOWN) # <-- FIX: Use the imported ParseMode
     await context.bot.forward_message(chat_id=ADMIN_CHAT_ID, from_chat_id=update.message.chat_id, message_id=update.message.message_id)
     await update.message.reply_text("Thanks! Your screenshot is being verified. You will receive your key shortly.")
 
@@ -61,7 +60,7 @@ async def approve(update: Update, context: CallbackContext):
         await context.bot.send_message(
             chat_id=target_user_id,
             text=f"`{license_key}`",
-            parse_mode=telegram.ParseMode.MARKDOWN_V2
+            parse_mode=ParseMode.MARKDOWN_V2
         )
         await update.message.reply_text(f"License sent to user {target_user_id}.")
     except IndexError:
@@ -73,14 +72,10 @@ async def approve(update: Update, context: CallbackContext):
 app = Flask(__name__)
 
 async def main_bot_logic(update_data):
-    """Main async function to initialize and process updates."""
     application = Application.builder().token(BOT_TOKEN).build()
-
-    # Add handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("approve", approve))
     application.add_handler(MessageHandler(filters.PHOTO, handle_screenshot))
-    
     await application.initialize()
     update = Update.de_json(update_data, application.bot)
     await application.process_update(update)
