@@ -1,4 +1,4 @@
 Flask
 requests
 cryptography
-python-telegram-bot
+python-telegram-bot[httpx]
