@@ -13,7 +13,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID")
 PRIVATE_KEY_PEM = os.environ.get("PRIVATE_KEY_PEM")
-PAYMENT_INSTRUCTIONS = """Please send **Rs 400** to:\n\n**GPay / UPI:** `av01032001@oksbi`\n\nAfter paying, send the confirmation screenshot to this chat."""
+PAYMENT_INSTRUCTIONS = """Please send **$19.99** to:\n\n**GPay / UPI:** `your-upi-id@okhdfcbank`\n\nAfter paying, send the confirmation screenshot to this chat."""
 
 # --- Initialize Cryptography ---
 private_key = None
@@ -35,8 +35,14 @@ def create_license(data_to_sign):
 
 # --- Bot Handlers (async) ---
 async def start(update: Update, context: CallbackContext):
-    await update.message.reply_text("Welcome! To get your Ankard PRO license, please follow these steps:")
-    await update.message.reply_text(PAYMENT_INSTRUCTIONS, parse_mode=telegram.ParseMode.MARKDOWN)
+    # FIX: Combine the two messages into one to prevent a race condition on Vercel
+    welcome_message = "Welcome! To get your Ankard PRO license, please follow these steps:"
+    full_message = f"{welcome_message}\n\n{PAYMENT_INSTRUCTIONS}"
+    
+    await update.message.reply_text(
+        full_message,
+        parse_mode=telegram.ParseMode.MARKDOWN
+    )
 
 async def handle_screenshot(update: Update, context: CallbackContext):
     if not ADMIN_CHAT_ID: return
@@ -75,7 +81,6 @@ async def main_bot_logic(update_data):
     application.add_handler(CommandHandler("approve", approve))
     application.add_handler(MessageHandler(filters.PHOTO, handle_screenshot))
     
-    # This is the crucial step that was missing
     await application.initialize()
     update = Update.de_json(update_data, application.bot)
     await application.process_update(update)
@@ -85,7 +90,6 @@ async def main_bot_logic(update_data):
 def webhook():
     if request.method == 'POST':
         try:
-            # Run the main async logic for the bot
             asyncio.run(main_bot_logic(request.get_json(force=True)))
         except Exception as e:
             print(f"Error processing update: {e}")
