@@ -1,3 +1,4 @@
+# api/index.py
 from flask import Flask, request
 import os
 import base64
@@ -65,26 +66,30 @@ async def approve(update: Update, context: CallbackContext):
 # --- Vercel Entry Point with Flask ---
 app = Flask(__name__)
 
-# Initialize the Telegram bot application
-application = Application.builder().token(BOT_TOKEN).build()
-application.add_handler(CommandHandler("start", start))
-application.add_handler(CommandHandler("approve", approve))
-application.add_handler(MessageHandler(filters.PHOTO, handle_screenshot))
+async def main_bot_logic(update_data):
+    """Main async function to initialize and process updates."""
+    application = Application.builder().token(BOT_TOKEN).build()
+
+    # Add handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("approve", approve))
+    application.add_handler(MessageHandler(filters.PHOTO, handle_screenshot))
+    
+    # This is the crucial step that was missing
+    await application.initialize()
+    update = Update.de_json(update_data, application.bot)
+    await application.process_update(update)
+    await application.shutdown()
 
 @app.route('/', methods=['POST', 'GET'])
 def webhook():
-    # This function now handles both the webhook and a simple "Hello World" test
     if request.method == 'POST':
         try:
-            # The asyncio.run() call is the key to making this work in Flask on Vercel
-            asyncio.run(application.process_update(
-                Update.de_json(request.get_json(force=True), application.bot)
-            ))
+            # Run the main async logic for the bot
+            asyncio.run(main_bot_logic(request.get_json(force=True)))
         except Exception as e:
             print(f"Error processing update: {e}")
             return "Error", 500
         return "Ok", 200
     else:
-        # This is for the browser test
         return "<h1>Success! Your Vercel server is running the bot code.</h1>"
-    
