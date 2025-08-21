@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import rsa, padding
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 ADMIN_CHAT_ID = os.environ.get("ADMIN_CHAT_ID")
 PRIVATE_KEY_PEM = os.environ.get("PRIVATE_KEY_PEM")
-PAYMENT_INSTRUCTIONS = """Please send **$19.99** to:\n\n**GPay / UPI:** `your-upi-id@okhdfcbank`\n\nAfter paying, send the confirmation screenshot to this chat."""
+PAYMENT_INSTRUCTIONS = """Please send **Rs 399** to:\n\n**GPay / UPI:** `av01032001@oksbi`\n\nAfter paying, send the confirmation screenshot to this chat."""
 
 # --- Initialize Cryptography ---
 private_key = None
